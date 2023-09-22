@@ -9,8 +9,8 @@ public class GroundRepeat : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        BoxCollider2D groundCollider = GetComponent<BoxCollider2D>();
-        spriteWidht = groundCollider.size.x;
+        Transform groundCollider = GetComponent<Transform>();
+        spriteWidht = groundCollider.localScale.x;
     }
 
     // Update is called once per frame

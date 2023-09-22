@@ -2,19 +2,19 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class player_Movement : MonoBehaviour
+public class Test : MonoBehaviour
 {
     private Rigidbody2D rb;
     //private float moveSpeed = 5f;
-    [Header("Jump")]
+    [Header ("Jump")]
     [SerializeField] private float jumpSpeed;
     [SerializeField] private bool canJump;
 
-    [Header("Ground")]
+    [Header ("Ground")]
     [SerializeField] private Transform groundCheck;
     [SerializeField] private LayerMask groundLayer;
     [SerializeField] private bool isGrounded;
-    [Header("Wall")]
+    [Header ("Wall")]
     [SerializeField] private Transform wallCheck;
     [SerializeField] private LayerMask wallLayer;
     [SerializeField] private bool isTouchingWall;
@@ -31,7 +31,7 @@ public class player_Movement : MonoBehaviour
         // Checa si está en el suelo
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, radius, groundLayer);
 
-        // Checa si está chocando con una pared
+        // Checa si está chocando 
         isTouchingWall = Physics2D.OverlapCircle(wallCheck.position, radius, wallLayer);
 
         // Habilita el salto si está en el suelo o tocando una pared
@@ -43,10 +43,9 @@ public class player_Movement : MonoBehaviour
         }
     }
 
-    public void Jump()
+    private void Jump()
     {
-        if (isGrounded)
-            rb.AddForce(new Vector2(0, jumpSpeed));
+        rb.velocity = new Vector2(rb.velocity.x, jumpSpeed);
     }
 
     private void OnDrawGizmos()
