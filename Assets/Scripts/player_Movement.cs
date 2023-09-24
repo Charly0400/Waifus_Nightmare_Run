@@ -9,14 +9,24 @@ public class player_Movement : MonoBehaviour
     [SerializeField] private float radius;
     //private float moveSpeed = 5f;
 
+    private float originalJumpSpeed; // Almacena la fuerza de salto original
     public float horizontal;
     public bool isFacingright = true;
+
+    [Header("Reset Position")]
+    [SerializeField] private Vector3 initialPosition; 
+    [SerializeField] private float resetDistance = 10f; // La distancia para activar el reset
+    [SerializeField] private float resetDelay = 2f; // El tiempo de espera antes de realizar el reset
+    private float distanceTraveled = 0f;
+    private float timeSinceLastReset = 0f;
 
     [Header("Jump")]
     [SerializeField] private float jumpSpeed;
     [SerializeField] private bool canJump;
     [SerializeField] private float speed;
-
+    [SerializeField] private int maxJumps = 2; // Cantidad máxima de saltos permitidos
+    private int jumpsPerformed = 0; // Cantidad de saltos realizados
+    [SerializeField] private float secondJumpForce = 10f; // Fuerza del segundo salto
 
     [Header("Ground")]
     [SerializeField] private Transform groundCheck;
@@ -39,26 +49,41 @@ public class player_Movement : MonoBehaviour
     [SerializeField] private Vector2 wallJumpingPower = new Vector2(0f, 16f);
 
 
-
-
-
     private void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+        originalJumpSpeed = jumpSpeed;
     }
-
     private void Update()
     {
+        //===============================================================================
+        // Calcula la distancia recorrida
+        distanceTraveled += Mathf.Abs(rb.velocity.x) * Time.deltaTime;
+
+        // Actualiza el tiempo desde el último reset
+        timeSinceLastReset += Time.deltaTime;
+
+        // Verifica si se debe realizar un reset
+        if (distanceTraveled >= resetDistance || timeSinceLastReset >= resetDelay)
+        {
+            // Realiza el reset a la posición deseada
+            ResetPosition();
+        }
+
+        //===============================================================================
         // Checa si está en el suelo
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, radius, groundLayer);
 
         // Checa si está chocando con una pared
         isTouchingWall = Physics2D.OverlapCircle(wallCheck.position, radius, wallLayer);
 
+
+        //===============================================================================
         // Habilita el salto si está en el suelo o tocando una pared
         canJump = isGrounded || isTouchingWall;
 
-        if (Input.GetKeyDown(KeyCode.Space) && canJump)
+        // Detecta la entrada de salto (barra espaciadora)
+        if (Input.GetButtonDown("JumpButton") && Input.GetKeyDown(KeyCode.Space) && canJump)
         {
             Jump();
         }
@@ -69,6 +94,20 @@ public class player_Movement : MonoBehaviour
         if (!isWallJumping)
         {
             Flip();
+        }
+
+        if (Input.GetKeyDown(KeyCode.Space) && Input.GetButtonDown("JumpButton"))
+        {
+            if (isGrounded)
+            {
+                Jump(); // Salto normal si está en el suelo
+            }
+            else if (jumpsPerformed < maxJumps)
+            {
+                // Segundo salto controlado si quedan saltos disponibles
+                rb.velocity = new Vector2(rb.velocity.x, secondJumpForce);
+                jumpsPerformed++;
+            }
         }
     }
     private void FixedUpdate()
@@ -83,7 +122,15 @@ public class player_Movement : MonoBehaviour
     public void Jump()
     {
         if (isGrounded)
-            rb.AddForce(new Vector2(0, jumpSpeed));
+        {
+            jumpsPerformed = 0; // Restablecer los saltos cuando toca el suelo
+        }
+
+        if (isGrounded || jumpsPerformed < maxJumps)
+        {
+            rb.velocity = new Vector2(rb.velocity.x, jumpSpeed);
+            jumpsPerformed++;
+        }
     }
 
     private void OnDrawGizmos()
@@ -111,23 +158,16 @@ public class player_Movement : MonoBehaviour
     {
         if (isWallSliding)
         {
-            isWallJumping = false;
+            // Cambia la fuerza de salto solo para el wall jump
+            jumpSpeed = wallJumpingPower.y;
+
+            isWallJumping = true;
             wallJumpingDirection = -transform.localScale.x;
             wallJumpingCounter = wallJumpingTime;
 
-            CancelInvoke(nameof(StopWallJumping));
-        }
-        else
-        {
-            wallJumpingCounter -= Time.deltaTime;
-        }
-        if ( Input.GetKeyDown(KeyCode.Space) && wallJumpingCounter > 0f)
-        {
-            isWallJumping = true;
-            rb.velocity = new Vector2(wallJumpingDuration * wallJumpingPower.x, wallJumpingPower.y);
-            wallJumpingCounter = 0f;
-            
-            if(transform.localScale.x != wallJumpingDirection)
+            rb.velocity = new Vector2(wallJumpingPower.x * wallJumpingDirection, wallJumpingPower.y);
+
+            if (transform.localScale.x != wallJumpingDirection)
             {
                 isFacingright = !isFacingright;
                 Vector3 localScale = transform.localScale;
@@ -135,13 +175,25 @@ public class player_Movement : MonoBehaviour
                 transform.localScale = localScale;
             }
 
-        Invoke(nameof(StopWallJumping), wallJumpingDirection);
-        
+            Invoke(nameof(StopWallJumping), wallJumpingDuration);
+        }
+        else
+        {
+            wallJumpingCounter -= Time.deltaTime;
+        }
+
+        // Restablecer la lógica del segundo salto
+        if (isGrounded)
+        {
+            isWallJumping = false;
+            wallJumpingCounter = wallJumpingTime;
         }
     }
     private void StopWallJumping()
     {
-        isWallJumping = false;
+       isWallJumping = false;
+        // Restaura la fuerza de salto original después del wall jump
+        jumpSpeed = originalJumpSpeed;
     }
 
     private void Flip()
@@ -152,6 +204,31 @@ public class player_Movement : MonoBehaviour
             Vector3 localscale = transform.localScale;
             localscale.x *= -1f;
             transform.localScale= localscale;
+        }
+    }
+
+    private void ResetPosition()
+    {
+        if (isGrounded)
+        {
+            // Solo reinicia la posición en el eje X si está en el suelo
+            Vector3 newPosition = transform.position;
+            newPosition.x = initialPosition.x; // Mantén la misma posición en Y y Z
+            transform.position = newPosition;
+            
+            // Reinicia la distancia recorrida y el tiempo desde el último reset
+            distanceTraveled = 0f;
+            timeSinceLastReset = 0f;
+        }
+
+    }
+
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if(collision.gameObject.CompareTag("Obstacle"))
+        {
+            GameManager.Instance.ShowGameOverScreen();
+            Time.timeScale = 0f;
         }
     }
 }

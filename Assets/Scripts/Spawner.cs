@@ -4,23 +4,27 @@ using UnityEngine;
 
 public class Spawner : MonoBehaviour
 {
-public GameObject[] gameObjects;
+    [SerializeField] GameObject[] obstacles;
+    [SerializeField] private float minTime = 0.6f;
+    [SerializeField] private float maxTime = 2f;
 
-
-    private float Timer;
-    private float initialWait;
-
-    private void Awake()
+    private void Start()
     {
-        Timer = 3;
-        initialWait = 2;
+        StartCoroutine(SpawnObstacles());
     }
 
-    private void Update()
+    private IEnumerator SpawnObstacles()
     {
-        Timer -= Time.deltaTime;
-        if(Timer <=0)
-            Instantiate(gameObject);
+        while (true)
+        {
+            int randomIndex = Random.Range(0, obstacles.Length);
+            float randomTime = Random.Range(minTime, maxTime);
+
+            Instantiate(obstacles[randomIndex], transform.position, Quaternion.identity);
+           yield return new WaitForSeconds(randomTime);
+        }
+
     }
 
+ 
 }

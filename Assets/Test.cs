@@ -1,51 +1,153 @@
 using System.Collections;
 using System.Collections.Generic;
+using UnityEditor.Tilemaps;
 using UnityEngine;
 
 public class Test : MonoBehaviour
 {
     private Rigidbody2D rb;
+
+    [SerializeField] private float radius;
     //private float moveSpeed = 5f;
-    [Header ("Jump")]
+
+    private float originalJumpSpeed; // Almacena la fuerza de salto original
+    public float horizontal;
+    public bool isFacingright = true;
+
+    [Header("Reset Position")]
+    [SerializeField] private Vector3 initialPosition;
+    [SerializeField] private float resetDistance = 10f; // La distancia para activar el reset
+    [SerializeField] private float resetDelay = 2f; // El tiempo de espera antes de realizar el reset
+    private float distanceTraveled = 0f;
+    private float timeSinceLastReset = 0f;
+
+    [Header("Jump")]
     [SerializeField] private float jumpSpeed;
     [SerializeField] private bool canJump;
+    [SerializeField] private float speed;
+    [SerializeField] private int maxJumps = 2; // Cantidad máxima de saltos permitidos
+    private int jumpsPerformed = 0; // Cantidad de saltos realizados
+    [SerializeField] private float secondJumpForce = 10f; // Fuerza del segundo salto
 
-    [Header ("Ground")]
+    [Header("Ground")]
     [SerializeField] private Transform groundCheck;
     [SerializeField] private LayerMask groundLayer;
     [SerializeField] private bool isGrounded;
-    [Header ("Wall")]
+
+    [Header("Wall")]
     [SerializeField] private Transform wallCheck;
     [SerializeField] private LayerMask wallLayer;
     [SerializeField] private bool isTouchingWall;
 
-    [SerializeField] private float radius;
+    [Header("WallSliding & Wall Jumping")]
+    [SerializeField] private bool isWallSliding;
+    [SerializeField] private float wallSlidingSpeed;
+    [SerializeField] private bool isWallJumping;
+    private float wallJumpingDirection;
+    [SerializeField] private float wallJumpingTime = .2f;
+    [SerializeField] private float wallJumpingCounter;
+    [SerializeField] private float wallJumpingDuration = .4f;
+    [SerializeField] private Vector2 wallJumpingPower = new Vector2(0f, 16f);
+
 
     private void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+        originalJumpSpeed = jumpSpeed;
     }
-
     private void Update()
     {
+
+        //===============================================================================
+        // Calcula la distancia recorrida
+        distanceTraveled += Mathf.Abs(rb.velocity.x) * Time.deltaTime;
+
+        // Actualiza el tiempo desde el último reset
+        timeSinceLastReset += Time.deltaTime;
+
+        // Verifica si se debe realizar un reset
+        if (distanceTraveled >= resetDistance || timeSinceLastReset >= resetDelay)
+        {
+            // Realiza el reset a la posición deseada
+            ResetPosition();
+        }
+
+        //===============================================================================
         // Checa si está en el suelo
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, radius, groundLayer);
 
-        // Checa si está chocando 
+        // Checa si está chocando con una pared
         isTouchingWall = Physics2D.OverlapCircle(wallCheck.position, radius, wallLayer);
 
+
+        //===============================================================================
         // Habilita el salto si está en el suelo o tocando una pared
         canJump = isGrounded || isTouchingWall;
 
-        if (Input.GetKeyDown(KeyCode.Space) && canJump)
+
+        isGrounded = Physics2D.OverlapCircle(groundCheck.position, radius, groundLayer);
+        isTouchingWall = Physics2D.OverlapCircle(wallCheck.position, radius, wallLayer);
+
+        // Detecta si el botón de salto ha sido presionado
+        if (Input.GetButtonDown("JumpButton") && Input.GetKeyDown(KeyCode.Space) && (isGrounded || (!isWallSliding && jumpsPerformed < maxJumps)))
         {
             Jump();
         }
+
+        WallSlide();
+        WallJump();
+        
+
+        if (Input.GetButtonDown("JumpButton") && Input.GetKeyDown(KeyCode.Space))
+        {
+            if (isGrounded)
+            {
+                Jump(); // Salto normal si está en el suelo
+            }
+            else if (jumpsPerformed < maxJumps)
+            {
+                // Segundo salto controlado si quedan saltos disponibles
+                rb.velocity = new Vector2(rb.velocity.x, secondJumpForce);
+                jumpsPerformed++;
+            }
+        }
+    }
+    private void FixedUpdate()
+    {
+        if (!isWallJumping)
+        {
+            rb.velocity = new Vector2(horizontal * speed, rb.velocity.y);
+        }
     }
 
-    private void Jump()
+
+    public void Jump()
     {
-        rb.velocity = new Vector2(rb.velocity.x, jumpSpeed);
+        if (isGrounded)
+        {
+            rb.velocity = new Vector2(rb.velocity.x, jumpSpeed);
+            jumpsPerformed = 1;
+        }
+        else if (!isWallSliding && jumpsPerformed < maxJumps)
+        {
+            // Realiza el segundo salto
+            rb.velocity = new Vector2(rb.velocity.x, secondJumpForce);
+            jumpsPerformed = 2;
+        }
+        else if (isWallSliding)
+        {
+            // Realiza el wall jump
+            isWallJumping = true;
+            wallJumpingDirection = isTouchingWall ? -1f : 1f;
+            wallJumpingCounter = wallJumpingDuration;
+
+            rb.velocity = new Vector2(wallJumpingPower.x * wallJumpingDirection, wallJumpingPower.y);
+
+            if (wallJumpingDirection < 0f)
+            {
+                Flip();
+            }
+        }
     }
 
     private void OnDrawGizmos()
@@ -53,4 +155,96 @@ public class Test : MonoBehaviour
         Gizmos.DrawWireSphere(groundCheck.position, radius);
         Gizmos.DrawWireSphere(wallCheck.position, radius);
     }
+
+    private void WallSlide()
+    {
+        if (isTouchingWall && !isGrounded)
+        {
+            isWallSliding = true;
+            rb.velocity = new Vector2(rb.velocity.x, Mathf.Clamp(rb.velocity.y, -wallSlidingSpeed, float.MaxValue));
+
+        }
+        else
+        {
+            isWallSliding = false;
+
+        }
+
+    }
+    private void WallJump()
+    {
+        if (isWallJumping)
+        {
+            // Cambia la fuerza de salto solo para el wall jump
+            jumpSpeed = wallJumpingPower.y;
+
+            isWallJumping = true;
+            wallJumpingDirection = -transform.localScale.x;
+            wallJumpingCounter = wallJumpingTime;
+
+            rb.velocity = new Vector2(wallJumpingPower.x * wallJumpingDirection, wallJumpingPower.y);
+
+            if (transform.localScale.x != wallJumpingDirection)
+            {
+                isFacingright = !isFacingright;
+                Vector3 localScale = transform.localScale;
+                localScale.x *= -1f;
+                transform.localScale = localScale;
+            }
+
+            Invoke(nameof(StopWallJumping), wallJumpingDuration);
+        }
+        else
+        {
+            wallJumpingCounter -= Time.deltaTime;
+        }
+
+        // Restablecer la lógica del segundo salto
+        if (isGrounded)
+        {
+            isWallJumping = false;
+            wallJumpingCounter = wallJumpingTime;
+        }
+    }
+    private void StopWallJumping()
+    {
+        isWallJumping = false;
+        // Restaura la fuerza de salto original después del wall jump
+        jumpSpeed = originalJumpSpeed;
+    }
+
+    private void Flip()
+    {
+        if (isFacingright && horizontal < 0f || !isFacingright && horizontal > 0f)
+        {
+            isFacingright = !isFacingright;
+            Vector3 localscale = transform.localScale;
+            localscale.x *= -1f;
+            transform.localScale = localscale;
+        }
+    }
+
+    private void ResetPosition()
+    {
+        if (isGrounded)
+        {
+            // Solo reinicia la posición en el eje X si está en el suelo
+            Vector3 newPosition = transform.position;
+            newPosition.x = initialPosition.x; // Mantén la misma posición en Y y Z
+            transform.position = newPosition;
+
+            // Reinicia la distancia recorrida y el tiempo desde el último reset
+            distanceTraveled = 0f;
+            timeSinceLastReset = 0f;
+        }
+
+    }
+
+ 
+
+   
+
 }
+
+
+
