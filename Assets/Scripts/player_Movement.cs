@@ -1,13 +1,13 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class player_Movement : MonoBehaviour
 {
     private Rigidbody2D rb;
     [SerializeField] private float radius;
     //private float moveSpeed = 5f;
-
     private float originalJumpSpeed; // Almacena la fuerza de salto original
     public float horizontal;
     public bool isFacingright = true;
@@ -20,6 +20,7 @@ public class player_Movement : MonoBehaviour
     private float timeSinceLastReset = 0f;
 
     [Header("Jump")]
+    public bool isJumping = false;
     [SerializeField] private float jumpSpeed;
     [SerializeField] private bool canJump;
     [SerializeField] private float speed;
@@ -53,8 +54,9 @@ public class player_Movement : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         originalJumpSpeed = jumpSpeed;
     }
-    private void Update()
+    public void Update()
     {
+        //Reseteo de posición
         //===============================================================================
         // Calcula la distancia recorrida
         distanceTraveled += Mathf.Abs(rb.velocity.x) * Time.deltaTime;
@@ -69,6 +71,7 @@ public class player_Movement : MonoBehaviour
             ResetPosition();
         }
 
+        //Gizmos
         //===============================================================================
         // Checa si está en el suelo
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, radius, groundLayer);
@@ -77,15 +80,10 @@ public class player_Movement : MonoBehaviour
         isTouchingWall = Physics2D.OverlapCircle(wallCheck.position, radius, wallLayer);
 
 
+        //Salto
         //===============================================================================
         // Habilita el salto si está en el suelo o tocando una pared
         canJump = isGrounded || isTouchingWall;
-
-        // Detecta la entrada de salto (barra espaciadora)
-        if (Input.GetButtonDown("JumpButton") && Input.GetKeyDown(KeyCode.Space) && canJump)
-        {
-            Jump();
-        }
 
         WallSlide();
         WallJump();
@@ -94,8 +92,14 @@ public class player_Movement : MonoBehaviour
         {
             Flip();
         }
+        /*
+        if (Input.GetKeyDown(KeyCode.Space) && canJump)
+        {
+            Jump();
+        }
 
-        if (Input.GetKeyDown(KeyCode.Space) && Input.GetButtonDown("JumpButton"))
+
+        if (Input.GetKeyDown(KeyCode.Space) || button != true)
         {
             if (isGrounded)
             {
@@ -107,7 +111,8 @@ public class player_Movement : MonoBehaviour
                 rb.velocity = new Vector2(rb.velocity.x, secondJumpForce);
                 jumpsPerformed++;
             }
-        }
+        } 
+        */
     }
     private void FixedUpdate()
     {
@@ -120,14 +125,22 @@ public class player_Movement : MonoBehaviour
 
     public void Jump()
     {
-        if (isGrounded)
+       if (isGrounded)
         {
             jumpsPerformed = 0; // Restablecer los saltos cuando toca el suelo
+            isJumping = false; // El jugador no está saltando
         }
 
-        if (isGrounded || jumpsPerformed < maxJumps)
+        if ((isGrounded || jumpsPerformed < maxJumps || isWallJumping || isWallSliding) && !isJumping)
         {
             rb.velocity = new Vector2(rb.velocity.x, jumpSpeed);
+            jumpsPerformed++;
+            isJumping = true; // El jugador está saltando
+        }
+        else if (jumpsPerformed < maxJumps && !isGrounded && !isWallJumping && !isWallSliding)
+        {
+            // Realizar el segundo salto si se cumplen las condiciones
+            rb.velocity = new Vector2(rb.velocity.x, secondJumpForce);
             jumpsPerformed++;
         }
     }

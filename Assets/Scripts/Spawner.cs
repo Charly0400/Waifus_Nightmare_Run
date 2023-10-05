@@ -13,6 +13,10 @@ public class Spawner : MonoBehaviour
         StartCoroutine(SpawnObstacles());
     }
 
+    public void Update()
+    {
+        UpdateTime();
+    }
     private IEnumerator SpawnObstacles()
     {
         while (true)
@@ -26,5 +30,10 @@ public class Spawner : MonoBehaviour
 
     }
 
+    public void UpdateTime()
+    {
+        //float time = 10f;
+
+    }
  
 }
