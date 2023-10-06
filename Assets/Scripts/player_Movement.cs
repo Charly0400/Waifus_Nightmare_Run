@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -11,6 +12,12 @@ public class player_Movement : MonoBehaviour
     private float originalJumpSpeed; // Almacena la fuerza de salto original
     public float horizontal;
     public bool isFacingright = true;
+
+    [Header("Friccion")]
+    [SerializeField] private float friction = 10f;
+    [SerializeField] private bool frictionActive = false;
+    [SerializeField] private float freno = 10f;
+    [SerializeField] private bool frenoActive = false;
 
     [Header("Reset Position")]
     [SerializeField] private Vector3 initialPosition; 
@@ -235,6 +242,7 @@ public class player_Movement : MonoBehaviour
 
     }
 
+
     private void OnCollisionEnter2D(Collision2D collision)
     {
         if(collision.gameObject.CompareTag("Obstacle"))
@@ -243,4 +251,39 @@ public class player_Movement : MonoBehaviour
             Time.timeScale = 0f;
         }
     }
+
+    private void OnTriggerStay2D(Collider2D collision)
+    {
+        if (collision.gameObject.CompareTag("Friccion"))
+        {
+            // Aplica una fuerza de fricción al personaje
+            rb.transform.Translate(Vector2.left * friction);
+            frictionActive = true;
+        }
+
+        if (collision.gameObject.CompareTag("Freno"))
+        {
+            // Aplica una fuerza de fricción al personaje
+            rb.AddForce(-rb.velocity.normalized * freno);
+            //rb.velocity = new Vector2(wallJumpingPower.x * wallJumpingDirection, wallJumpingPower.y)*-freno;
+            //transform.Translate(Vector2.left * Time.deltaTime * freno);
+            frenoActive = true;
+        }
+    }
+
+    private void OnTriggerExit2D(Collider2D collision)
+    {
+        if (collision.gameObject.CompareTag("Friccion"))
+        {
+            // Detiene la aplicación de fricción cuando sale del objeto de fricción
+            frictionActive = false;
+        }
+        
+        if (collision.gameObject.CompareTag("Freno"))
+        {
+            // Detiene la aplicación de fricción cuando sale del objeto de fricción
+            frenoActive = false;
+        }
+    }
+
 }

@@ -5,6 +5,8 @@ TagManager:
   serializedVersion: 2
   tags:
   - Obstacle
+  - Friccion
+  - Freno
   layers:
   - Default
   - TransparentFX
