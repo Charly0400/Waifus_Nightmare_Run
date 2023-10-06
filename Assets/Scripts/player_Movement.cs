@@ -266,7 +266,7 @@ public class player_Movement : MonoBehaviour
             // Aplica una fuerza de fricción al personaje
             rb.AddForce(-rb.velocity.normalized * freno);
             //rb.velocity = new Vector2(wallJumpingPower.x * wallJumpingDirection, wallJumpingPower.y)*-freno;
-            //transform.Translate(Vector2.left * Time.deltaTime * freno);
+            transform.Translate(Vector2.left * Time.deltaTime * freno);
             frenoActive = true;
         }
     }

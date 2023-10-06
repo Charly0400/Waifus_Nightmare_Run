@@ -24,7 +24,7 @@ public class Spawner : MonoBehaviour
             int randomIndex = Random.Range(0, obstacles.Length);
             float randomTime = Random.Range(minTime, maxTime);
 
-            Instantiate(obstacles[randomIndex], transform.position, Quaternion.identity);
+            Instantiate(obstacles[randomIndex], transform.position,Quaternion.identity);
            yield return new WaitForSeconds(randomTime);
         }
 
