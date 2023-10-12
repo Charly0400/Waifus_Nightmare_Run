@@ -246,17 +246,19 @@ public class player_Movement : MonoBehaviour
 
     }
 
-
-    private void OnCollisionEnter2D(Collision2D collision)
+    private void OnTriggerEnter2D(Collider2D other)
     {
-        if(collision.gameObject.CompareTag("Obstacle"))
+        if (other.gameObject.layer == LayerMask.NameToLayer("Death"))
         {
             GameManager.Instance.ShowGameOverScreen();
             anim.SetTrigger("Die");
             Time.timeScale = 0f;
         }
         
-        if(collision.gameObject.layer == LayerMask.NameToLayer("Death"))
+    }
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if(collision.gameObject.CompareTag("Obstacle"))
         {
             GameManager.Instance.ShowGameOverScreen();
             anim.SetTrigger("Die");
