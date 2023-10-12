@@ -255,7 +255,15 @@ public class player_Movement : MonoBehaviour
             anim.SetTrigger("Die");
             Time.timeScale = 0f;
         }
+        
+        if(collision.gameObject.layer == LayerMask.NameToLayer("Death"))
+        {
+            GameManager.Instance.ShowGameOverScreen();
+            anim.SetTrigger("Die");
+            Time.timeScale = 0f;
+        }
     }
+    
 
     private void OnTriggerStay2D(Collider2D collision)
     {
