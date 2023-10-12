@@ -21,13 +21,23 @@ public class Spawner : MonoBehaviour
     {
         while (true)
         {
-            int randomIndex = Random.Range(0, obstacles.Length);
-            float randomTime = Random.Range(minTime, maxTime);
+           int randomIndex = Random.Range(0, obstacles.Length);
+        float randomTime = Random.Range(minTime, maxTime);
 
-            Instantiate(obstacles[randomIndex], transform.position,Quaternion.identity);
-           yield return new WaitForSeconds(randomTime);
+        // Obtener la rotación original del obstáculo
+        Quaternion originalRotation = obstacles[randomIndex].transform.rotation;
+
+        // Obtener la posición original del obstáculo
+        Vector3 originalPosition = obstacles[randomIndex].transform.position;
+
+        // Asegurar que la posición en X del objeto instanciado sea la misma que la del spawner
+        Vector3 newPosition = new Vector3(transform.position.x, originalPosition.y, originalPosition.z);
+
+        // Instanciar el obstáculo con la posición y rotación originales
+        GameObject newObstacle = Instantiate(obstacles[randomIndex], newPosition, originalRotation);
+
+        yield return new WaitForSeconds(randomTime);
         }
-
     }
 
     public void UpdateTime()

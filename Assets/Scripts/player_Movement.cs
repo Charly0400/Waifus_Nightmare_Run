@@ -7,6 +7,7 @@ using UnityEngine.UI;
 public class player_Movement : MonoBehaviour
 {
     private Rigidbody2D rb;
+    private Animator anim;
     [SerializeField] private float radius;
     //private float moveSpeed = 5f;
     private float originalJumpSpeed; // Almacena la fuerza de salto original
@@ -56,10 +57,12 @@ public class player_Movement : MonoBehaviour
     [SerializeField] private Vector2 wallJumpingPower = new Vector2(0f, 16f);
 
 
+
     private void Start()
     {
         rb = GetComponent<Rigidbody2D>();
         originalJumpSpeed = jumpSpeed;
+        anim = GetComponent<Animator>();
     }
     public void Update()
     {
@@ -82,6 +85,7 @@ public class player_Movement : MonoBehaviour
         //===============================================================================
         // Checa si está en el suelo
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, radius, groundLayer);
+        anim.SetBool("IsGrounded", isGrounded);
 
         // Checa si está chocando con una pared
         isTouchingWall = Physics2D.OverlapCircle(wallCheck.position, radius, wallLayer);
@@ -248,6 +252,7 @@ public class player_Movement : MonoBehaviour
         if(collision.gameObject.CompareTag("Obstacle"))
         {
             GameManager.Instance.ShowGameOverScreen();
+            anim.SetTrigger("Die");
             Time.timeScale = 0f;
         }
     }
